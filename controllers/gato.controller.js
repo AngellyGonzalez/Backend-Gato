@@ -1,6 +1,9 @@
 import db from "../firebase.js";
 import supabase from "../supabase.js";
 
+// ==========================================
+// 1. REGISTRAR GATO
+// ==========================================
 export const registrarGato = async (req, res) => {
   try {
     const { nombre, edad, peso, raza } = req.body || {};
@@ -19,59 +22,10 @@ export const registrarGato = async (req, res) => {
     }
 
     if (!imagen.mimetype.startsWith("image/")) {
-       return res.status(400).json({
+      return res.status(400).json({
         mensaje: "El archivo debe ser una imagen.",
       });
     }
-
-export const buscarGatos = async (req, res) => {
-  try {
-    const { q } = req.query;
-
-    if (!q || q.trim() === "") {
-      return res.status(400).json({
-        mensaje: "Debes enviar un término de búsqueda (parámetro q).",
-      });
-    }
-
-    const termino = q.trim().toLowerCase();
-
-    const snapshot = await db.collection("gatos").orderBy("fecha", "desc").get();
-
-    const gatos = snapshot.docs
-      .map((doc) => ({
-        id: doc.id,
-        ...doc.data(),
-      }))
-      .filter((gato) => {
-        // Buscamos en todos los campos excepto el id
-        const nombre = String(gato.nombre || "").toLowerCase();
-        const raza = String(gato.raza || "").toLowerCase();
-        const edad = String(gato.edad || "");
-        const peso = String(gato.peso || "");
-        const fecha = gato.fecha
-          ? new Date(gato.fecha).toLocaleDateString("es-ES").toLowerCase()
-          : "";
-
-        return (
-          nombre.includes(termino) ||
-          raza.includes(termino) ||
-          edad.includes(termino) ||
-          peso.includes(termino) ||
-          fecha.includes(termino)
-        );
-      });
-res.status(200).json(gatos);
-  } catch (error) {
-    console.error("Error al buscar gatos:", error);
-    res.status(500).json({
-      mensaje: "Error al buscar los gatos.",
-      error: error.message,
-    });
-  }
-};
-
-
 
     const extension = imagen.originalname.split(".").pop().toLowerCase();
 
@@ -90,14 +44,13 @@ res.status(200).json(gatos);
 
     if (uploadError) {
       console.error("Error al subir imagen:", uploadError);
-
       return res.status(500).json({
         mensaje: "Error al subir la imagen a Supabase.",
         error: uploadError.message,
       });
     }
 
- const { data: publicUrlData } = supabase.storage
+    const { data: publicUrlData } = supabase.storage
       .from("imagenes_gatos")
       .getPublicUrl(rutaImagen);
 
@@ -119,9 +72,7 @@ res.status(200).json(gatos);
     });
 
   } catch (error) {
-
-     console.error("Error:", error);
-
+    console.error("Error:", error);
     res.status(500).json({
       mensaje: "Error al registrar el gato.",
       error: error.message,
@@ -129,9 +80,61 @@ res.status(200).json(gatos);
   }
 };
 
+// ==========================================
+// 2. BUSCAR GATOS
+// ==========================================
+export const buscarGatos = async (req, res) => {
+  try {
+    const { q } = req.query;
+
+    if (!q || q.trim() === "") {
+      return res.status(400).json({
+        mensaje: "Debes enviar un término de búsqueda (parámetro q).",
+      });
+    }
+
+    const termino = q.trim().toLowerCase();
+
+    const snapshot = await db.collection("gatos").orderBy("fecha", "desc").get();
+
+    const gatos = snapshot.docs
+      .map((doc) => ({
+        id: doc.id,
+        ...doc.data(),
+      }))
+      .filter((gato) => {
+        const nombre = String(gato.nombre || "").toLowerCase();
+        const raza = String(gato.raza || "").toLowerCase();
+        const edad = String(gato.edad || "");
+        const peso = String(gato.peso || "");
+        const fecha = gato.fecha
+          ? new Date(gato.fecha).toLocaleDateString("es-ES").toLowerCase()
+          : "";
+
+        return (
+          nombre.includes(termino) ||
+          raza.includes(termino) ||
+          edad.includes(termino) ||
+          peso.includes(termino) ||
+          fecha.includes(termino)
+        );
+      });
+
+    res.status(200).json(gatos);
+  } catch (error) {
+    console.error("Error al buscar gatos:", error);
+    res.status(500).json({
+      mensaje: "Error al buscar los gatos.",
+      error: error.message,
+    });
+  }
+};
+
+// ==========================================
+// 3. OBTENER GATOS
+// ==========================================
 export const obtenerGatos = async (req, res) => {
   try {
-    
     const snapshot = await db.collection("gatos").orderBy("fecha", "desc").get();
 
     const gatos = snapshot.docs.map((doc) => ({
@@ -142,7 +145,6 @@ export const obtenerGatos = async (req, res) => {
     res.status(200).json(gatos);
   } catch (error) {
     console.error("Error al obtener los gatos:", error);
-
     res.status(500).json({
       mensaje: "Error al obtener los gatos.",
       error: error.message,
@@ -150,6 +152,9 @@ export const obtenerGatos = async (req, res) => {
   }
 };
 
+// ==========================================
+// 4. ACTUALIZAR GATO
+// ==========================================
 export const actualizarGato = async (req, res) => {
   try {
     const { id } = req.params;
@@ -171,9 +176,8 @@ export const actualizarGato = async (req, res) => {
       });
     }
 
-    let imagenUrl = doc.data().imagenUrl; // mantener la imagen actual por defecto
+    let imagenUrl = doc.data().imagenUrl;
 
-    // Si se subió una nueva imagen, la actualizamos
     if (imagen) {
       if (!imagen.mimetype.startsWith("image/")) {
         return res.status(400).json({
@@ -232,6 +236,9 @@ export const actualizarGato = async (req, res) => {
   }
 };
 
+// ==========================================
+// 5. ELIMINAR GATO
+// ==========================================
 export const eliminarGato = async (req, res) => {
   try {
     const { id } = req.params;
@@ -245,11 +252,9 @@ export const eliminarGato = async (req, res) => {
       });
     }
 
-    // Eliminar la imagen de Supabase
     const imagenUrl = doc.data().imagenUrl;
     if (imagenUrl) {
       try {
-        // Extraer la ruta del archivo desde la URL pública
         const ruta = imagenUrl.split("/imagenes_gatos/")[1];
         if (ruta) {
           await supabase.storage.from("imagenes_gatos").remove([ruta]);
@@ -259,7 +264,6 @@ export const eliminarGato = async (req, res) => {
       }
     }
 
-    // Eliminar el documento de Firestore
     await docRef.delete();
 
     res.status(200).json({
