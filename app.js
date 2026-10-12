@@ -17,10 +17,10 @@ app.use(express.json());
 const limiterGatos = rateLimit({
   windowMs: 1 * 60 * 1000, 
   max: 3,                  
-  standardHeaders: true,[cite: 1]
-  legacyHeaders: false,[cite: 1]
+  standardHeaders: true,
+  legacyHeaders: false,
   message: {
-    mensaje: "Demasiadas peticiones desde esta IP. Intenta de nuevo más tarde.",[cite: 1]
+    mensaje: "Demasiadas peticiones desde esta IP. Intenta de nuevo más tarde.",
   },
   handler: async (req, res, next, options) => {
     try {

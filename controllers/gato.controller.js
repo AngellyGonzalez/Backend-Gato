@@ -43,46 +43,42 @@ export const registrarGato = async (req, res) => {
       });
     }
 
-    if (!imagen) {
-      return res.status(400).json({
-        mensaje: "La imagen del gato es obligatoria.",
-      });
+    let imagenUrl = "https://placeholder.com/gato-prueba.jpg"; // URL por defecto si no hay imagen
+
+    if (imagen) {
+      if (!imagen.mimetype.startsWith("image/")) {
+        return res.status(400).json({
+          mensaje: "El archivo debe ser una imagen.",
+        });
+      }
+
+      const extension = imagen.originalname.split(".").pop().toLowerCase();
+      const nombreArchivo = `gato-${Date.now()}-${Math.random()
+        .toString(36)
+        .substring(2)}.${extension}`;
+      const rutaImagen = `gatos/${nombreArchivo}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from("imagenes_gatos")
+        .upload(rutaImagen, imagen.buffer, {
+          contentType: imagen.mimetype,
+          upsert: false,
+        });
+
+      if (uploadError) {
+        console.error("Error al subir imagen:", uploadError);
+        return res.status(500).json({
+          mensaje: "Error al subir la imagen a Supabase.",
+          error: uploadError.message,
+        });
+      }
+
+      const { data: publicUrlData } = supabase.storage
+        .from("imagenes_gatos")
+        .getPublicUrl(rutaImagen);
+
+      imagenUrl = publicUrlData.publicUrl;
     }
-
-    if (!imagen.mimetype.startsWith("image/")) {
-      return res.status(400).json({
-        mensaje: "El archivo debe ser una imagen.",
-      });
-    }
-
-    const extension = imagen.originalname.split(".").pop().toLowerCase();
-
-    const nombreArchivo = `gato-${Date.now()}-${Math.random()
-      .toString(36)
-      .substring(2)}.${extension}`;
-
-    const rutaImagen = `gatos/${nombreArchivo}`;
-
-    const { error: uploadError } = await supabase.storage
-      .from("imagenes_gatos")
-      .upload(rutaImagen, imagen.buffer, {
-        contentType: imagen.mimetype,
-        upsert: false,
-      });
-
-    if (uploadError) {
-      console.error("Error al subir imagen:", uploadError);
-      return res.status(500).json({
-        mensaje: "Error al subir la imagen a Supabase.",
-        error: uploadError.message,
-      });
-    }
-
-    const { data: publicUrlData } = supabase.storage
-      .from("imagenes_gatos")
-      .getPublicUrl(rutaImagen);
-
-    const imagenUrl = publicUrlData.publicUrl;
 
     const docRef = await db.collection("gatos").add({
       nombre,
@@ -109,7 +105,7 @@ export const registrarGato = async (req, res) => {
     });
 
     res.status(201).json({
-      mensaje: `¡Gato registrado con éxito! ID: ${docRef.id} | Nombre: ${nombre} | Edad: ${edad} años | Peso: ${peso} kg | Raza: ${raza}`,
+      mensaje: `¡Gato registrado con éxito! ID: ${docRef.id} | Nombre: ${nombre}`,
       id: docRef.id,
       imagenUrl,
     });
