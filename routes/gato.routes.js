@@ -1,8 +1,12 @@
 import express from "express";
 import multer from "multer";
-import { registrarGato, obtenerGatos, actualizarGato, eliminarGato, buscarGatos } from "../controllers/gato.controller.js";
+import { registrarGato,  obtenerGatos,  actualizarGato,  eliminarGato,  buscarGatos } from "../controllers/gato.controller.js";
+import { capturarInfoSolicitud } from "../middlewares/auditoria.js"; 
 
 const router = express.Router();
+
+
+router.use(capturarInfoSolicitud);
 
 const upload = multer({
   storage: multer.memoryStorage(),
@@ -27,10 +31,6 @@ router.get("/gatos", obtenerGatos);
 
 router.delete("/gato/:id", eliminarGato);
 
-router.get("/gatos/buscar", buscarGatos);   // nueva ruta
-
-
-
-
+router.get("/gatos/buscar", buscarGatos);   
 
 export default router;

@@ -2,6 +2,34 @@ import db from "../firebase.js";
 import supabase from "../supabase.js";
 
 // ==========================================
+// FUNCIÓN AUXILIAR DE AUDITORÍA
+// ==========================================
+export const guardarAuditoria = async ({
+  accion,
+  gatoId,
+  valoresAnteriores = null,
+  valoresNuevos = null,
+  req,
+}) => {
+  try {
+    await db.collection("auditoria_gatos").add({
+      accion,
+      gatoId: gatoId || null,
+      fecha: new Date().toISOString(),
+      ip: req.auditoria?.ip || "desconocida",
+      userAgent: req.auditoria?.userAgent || "desconocido",
+      metodo: req.auditoria?.metodo || req.method,
+      ruta: req.auditoria?.ruta || req.originalUrl,
+      valoresAnteriores,
+      valoresNuevos,
+    });
+  } catch (err) {
+    // No rompemos la operación principal si falla el log
+    console.error("Error al guardar auditoría:", err.message);
+  }
+};
+
+// ==========================================
 // 1. REGISTRAR GATO
 // ==========================================
 export const registrarGato = async (req, res) => {
@@ -63,6 +91,21 @@ export const registrarGato = async (req, res) => {
       raza,
       imagenUrl,
       fecha: new Date().toISOString(),
+    });
+
+    // Registro en la bitácora de auditoría
+    await guardarAuditoria({
+      accion: "crear",
+      gatoId: docRef.id,
+      valoresAnteriores: null,
+      valoresNuevos: {
+        nombre,
+        edad: Number(edad),
+        peso: Number(peso),
+        raza,
+        imagenUrl,
+      },
+      req,
     });
 
     res.status(201).json({
@@ -176,7 +219,8 @@ export const actualizarGato = async (req, res) => {
       });
     }
 
-    let imagenUrl = doc.data().imagenUrl;
+    const datosAnteriores = doc.data();
+    let imagenUrl = datosAnteriores.imagenUrl;
 
     if (imagen) {
       if (!imagen.mimetype.startsWith("image/")) {
@@ -213,12 +257,29 @@ export const actualizarGato = async (req, res) => {
       imagenUrl = publicUrlData.publicUrl;
     }
 
-    await docRef.update({
+    const valoresNuevos = {
       nombre,
       edad: Number(edad),
       peso: Number(peso),
       raza,
       imagenUrl,
+    };
+
+    await docRef.update(valoresNuevos);
+
+    // Registro de auditoría para actualización
+    await guardarAuditoria({
+      accion: "actualizar",
+      gatoId: id,
+      valoresAnteriores: {
+        nombre: datosAnteriores.nombre,
+        edad: datosAnteriores.edad,
+        peso: datosAnteriores.peso,
+        raza: datosAnteriores.raza,
+        imagenUrl: datosAnteriores.imagenUrl,
+      },
+      valoresNuevos,
+      req,
     });
 
     res.status(200).json({
@@ -252,7 +313,9 @@ export const eliminarGato = async (req, res) => {
       });
     }
 
-    const imagenUrl = doc.data().imagenUrl;
+    const datosAnteriores = doc.data();
+    const imagenUrl = datosAnteriores.imagenUrl;
+
     if (imagenUrl) {
       try {
         const ruta = imagenUrl.split("/imagenes_gatos/")[1];
@@ -265,6 +328,21 @@ export const eliminarGato = async (req, res) => {
     }
 
     await docRef.delete();
+
+    // Registro de auditoría para eliminación
+    await guardarAuditoria({
+      accion: "eliminar",
+      gatoId: id,
+      valoresAnteriores: {
+        nombre: datosAnteriores.nombre,
+        edad: datosAnteriores.edad,
+        peso: datosAnteriores.peso,
+        raza: datosAnteriores.raza,
+        imagenUrl: datosAnteriores.imagenUrl,
+      },
+      valoresNuevos: null,
+      req,
+    });
 
     res.status(200).json({
       mensaje: `Gato eliminado con éxito. ID: ${id}`,
