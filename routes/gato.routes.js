@@ -1,6 +1,6 @@
 import express from "express";
 import multer from "multer";
-import { registrarGato,  obtenerGatos,  actualizarGato,  eliminarGato,  buscarGatos } from "../controllers/gato.controller.js";
+import { registrarGato,  obtenerGatos,  actualizarGato,  eliminarGato,  buscarGatos, enviarGatosPorEmail } from "../controllers/gato.controller.js";
 import { capturarInfoSolicitud } from "../middlewares/auditoria.js"; 
 
 const router = express.Router();
@@ -32,5 +32,7 @@ router.get("/gatos", obtenerGatos);
 router.delete("/gato/:id", eliminarGato);
 
 router.get("/gatos/buscar", buscarGatos);   
+
+router.get('/gatos/enviar-email', enviarGatosPorEmail);
 
 export default router;
