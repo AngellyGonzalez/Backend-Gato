@@ -46,12 +46,13 @@ app.use("/gatos", limiterGatos);
 // Rutas
 app.use(gatoRoutes);
 app.use(climaRoutes); 
+app.use(estadisticasRoutes); 
 
 // 404 
 app.use((req, res) => {
 res.status(404).json({ mensaje: "Ruta no registrada." });
 
-app.use(estadisticasRoutes);   // agrega esta línea junto a las otras rutas
+
 
 });
 
