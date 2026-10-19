@@ -4,6 +4,8 @@ import rateLimit from "express-rate-limit";
 import db from "./firebase.js";            
 import gatoRoutes from "./routes/gato.routes.js";
 import climaRoutes from "./routes/clima.routes.js";
+import estadisticasRoutes from "./routes/estadisticas.routes.js";
+
 
 const app = express();
 
@@ -47,7 +49,10 @@ app.use(climaRoutes);
 
 // 404 
 app.use((req, res) => {
-  res.status(404).json({ mensaje: "Ruta no registrada." });
+res.status(404).json({ mensaje: "Ruta no registrada." });
+
+app.use(estadisticasRoutes);   // agrega esta línea junto a las otras rutas
+
 });
 
 export default app;
